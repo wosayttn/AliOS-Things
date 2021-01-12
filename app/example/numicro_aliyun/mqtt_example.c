@@ -14,9 +14,9 @@
 
 #include "numicro_m487_led_button.h"
 
-#define PRODUCT_KEY             ""
-#define DEVICE_NAME             ""
-#define DEVICE_SECRET           ""
+#define PRODUCT_KEY             "a1Ll7sjheeL"
+#define DEVICE_NAME             "NCC0Dpq4z3EmKal1UZxe"
+#define DEVICE_SECRET           "RLIZpPxsFgvDh9yChNjzcA2DcRPAhFpf"
 
 
 #define PRODUCT_SECRET          ""
@@ -24,7 +24,8 @@
 #define TOPIC_UPDATE            "/"PRODUCT_KEY"/"DEVICE_NAME"/user/update"
 #define TOPIC_ERROR             "/"PRODUCT_KEY"/"DEVICE_NAME"/user/update/error"
 #define TOPIC_GET               "/"PRODUCT_KEY"/"DEVICE_NAME"/user/get"
-#define TOPIC_DATA               "/"PRODUCT_KEY"/"DEVICE_NAME"/user/data"
+//#define TOPIC_DATA               "/"PRODUCT_KEY"/"DEVICE_NAME"/user/data"
+#define TOPIC_DATA               "/"PRODUCT_KEY"/"DEVICE_NAME"/data"
 
 #define MQTT_MSGLEN             (1024)
 
@@ -227,7 +228,7 @@ static void _demo_message_arrive(void *pcontext, void *pclient, iotx_mqtt_event_
     }
 }
 
-
+extern float max31875_getvalues(void);
 int mqtt_client(void)
 {
     int rc, msg_len, cnt = 0, counter = 0;
@@ -323,12 +324,24 @@ int mqtt_client(void)
 
     IOT_MQTT_Yield(pclient, 200);
 
-    while(1) {
+    while(1)
+		{
+        static int msg_counter=0;
         int received_msgsize=0;
         E_UserEvent msgbuf;
-        kret = krhino_buf_queue_recv(&gUsrEventQueue, 1000/*AOS_WAIT_FOREVER*/, (void *)&msgbuf, &received_msgsize );
+        kret = krhino_buf_queue_recv(&gUsrEventQueue, 10000/*AOS_WAIT_FOREVER*/, (void *)&msgbuf, &received_msgsize );
         if ( kret == RHINO_BLK_TIMEOUT )
         {
+            float f_temperature = max31875_getvalues();
+
+            /* Generate topic message */
+					  msg_len = snprintf(msg_pub, sizeof(msg_pub), "{\"counter\":\"%d\",\"temperature\":\"%.2f\"}", msg_counter++, f_temperature);
+            printf("[data]%s, %d\n", msg_pub, msg_len);
+            topic_msg.payload = (void *)msg_pub;
+            topic_msg.payload_len = msg_len;
+
+            rc = mqtt_publish_message (pclient, TOPIC_DATA, &topic_msg );
+
             IOT_MQTT_Yield(pclient, 200);
             continue;
         }
@@ -336,6 +349,7 @@ int mqtt_client(void)
             EXAMPLE_TRACE("recv msg fail %d", kret);
             break;
         }
+
         msg_len = 0;
         /* Generate topic message */
         switch (msgbuf)
@@ -353,7 +367,8 @@ int mqtt_client(void)
             break;
         }
 
-        if (msg_len < 0) {
+        if (msg_len < 0)
+				{
             EXAMPLE_TRACE("Error occur! Exit program");
             break;
         }
@@ -361,8 +376,7 @@ int mqtt_client(void)
         topic_msg.payload = (void *)msg_pub;
         topic_msg.payload_len = msg_len;
         rc = mqtt_publish_message (pclient, TOPIC_DATA, &topic_msg );
-
-    }
+		}
 
     IOT_MQTT_Yield(pclient, 200);
 

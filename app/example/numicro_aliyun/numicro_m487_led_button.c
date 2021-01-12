@@ -113,12 +113,13 @@ void board_leds_init(void)
     hal_gpio_output_low(&board_gpio_table[DEF_LED_RED]);
 
     //Light on LED_YELLOW by default
-	hal_gpio_output_low(&board_gpio_table[DEF_LED_YELLOW]);
+	  hal_gpio_output_low(&board_gpio_table[DEF_LED_YELLOW]);
 
     //Light on LED_GREEN by default    
     hal_gpio_output_low(&board_gpio_table[DEF_LED_GREEN]);
 }
 
+extern int m480_max31875_init();
 static void testcase_init()
 {
     // GPIO pin initialize
@@ -129,6 +130,8 @@ static void testcase_init()
 
     // LED
     board_leds_init();
+	
+	  m480_max31875_init();
 }
 
 void led_control(E_LED eled, int on_off)

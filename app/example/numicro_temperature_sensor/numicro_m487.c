@@ -25,16 +25,17 @@ static int numicro_i2c_write(int address, const char *data, int length)
     return hal_i2c_master_send ( &g_sI2cDev[0], (address<<1), data, length, 0);
 }
 
-static void max31875_getvalues(void)
+float max31875_getvalues(void)
 {
     float f_temperature;
     f_temperature = max31875_read_reg_as_temperature(MAX31875_REG_TEMPERATURE, &sI2C_drv);
     printf("Temperature is %3.4f Celsius, %3.4f Fahrenheit\r\n",
            f_temperature,
            max31875_celsius_to_fahrenheit(f_temperature));
+    return f_temperature;
 }
 
-static int testcase_init()
+int m480_max31875_init()
 {
     int ret = -1;
     if ( (ret = hal_i2c_init(&g_sI2cDev[0])) != 0 )
@@ -50,31 +51,4 @@ static int testcase_init()
     }
 		
 		return ret;
-}
-
-static void testcase_run(void)
-{
-    max31875_getvalues();
-}
-
-static void app_delayed_action(void *arg)
-{
-		// Get temperature now.
-    testcase_run();
-		// trigger new alarm after 1 second
-    aos_post_delayed_action(1000, app_delayed_action, NULL);
-}
-
-int application_start(int argc, char *argv[])
-{
-    printf("NuMicro Get temperature value from sensor started.\n");
-
-    if ( !testcase_init() )	
-			aos_post_delayed_action(1000, app_delayed_action, NULL);
-		else
-			printf("Initilize temperature sensor failure\n");
-
-    aos_loop_run();
-	
-    return 0;
 }
